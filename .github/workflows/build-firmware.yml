@@ -1,7 +1,6 @@
 name: Build a firmware
 
 on:
-
   workflow_call:
     inputs:
       qmk_version:
@@ -16,28 +15,30 @@ on:
         required: true
 
 jobs:
-
   build:
-
     name: Build a firmware ${{ inputs.keyboard }}:${{ inputs.keymap }}
-
     runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/qmk/qmk_cli:latest
 
     steps:
-
     - name: Checkout source
       uses: actions/checkout@v4
 
     - name: Checkout qmk_firmware
       uses: ./.github/actions/checkout-qmk_firmware
 
-    - name: Install a link to own source
-      run: ln -s $(pwd)/qmk_firmware/keyboards/keyball __qmk__/keyboards/keyball
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-    - name: Install missing python modules
-      run: /usr/bin/python3 -m pip install --break-system-packages -r __qmk__/requirements.txt
+    - name: Install QMK
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install qmk
+        qmk setup --yes
+
+    - name: Install a link to own source
+      run: ln -s $(pwd)/qmk_firmware/keyboards/keyball qmk_firmware/keyboards/keyball
 
     - name: Compile and link
       run: qmk compile -j 4 -kb keyball/${{ inputs.keyboard }} -km ${{ inputs.keymap }}
@@ -46,4 +47,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ inputs.keyboard }}-${{ inputs.keymap }}-firmware
-        path: __qmk__/*.hex
+        path: qmk_firmware/*.hex
